@@ -1,50 +1,53 @@
 const solc = require('solc');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-const contractName = 'txMaker';
-const fileName = `${contractName}.sol`;
+// Path to the Solidity file
+const filePath = path.resolve(__dirname, 'contracts', 'txMakerV2.sol');
+const fileName = 'txMakerV2.sol';
 
-// Read the Solidity source code from the file system
-const contractPath = path.join(__dirname, fileName);
-const sourceCode = fs.readFileSync(contractPath, 'utf8');
+// Read the Solidity file
+const source = fs.readFileSync(filePath, 'utf8');
 
-// solc compiler config
+// Compile the Solidity file
 const input = {
-	language: 'Solidity',
-	sources: {
-		[fileName]: {
-			content: sourceCode,
-		},
-	},
-	settings: {
-		outputSelection: {
-			'*': {
-				'*': ['*'],
-			},
-		},
-	},
+    language: 'Solidity',
+    sources: {
+        [fileName]: {
+            content: source,
+        },
+    },
+    settings: {
+        outputSelection: {
+            '*': {
+                '*': ['abi', 'evm.bytecode'],
+            },
+        },
+    },
 };
 
-// Compile the Solidity code using solc
 const compiledCode = JSON.parse(solc.compile(JSON.stringify(input)));
 
-// Get the bytecode from the compiled contract
-const bytecode = compiledCode.contracts[fileName][contractName].evm.bytecode.object;
+// Check available contracts
+console.log('Available contracts:', Object.keys(compiledCode.contracts[fileName]));
 
-// Write the bytecode to a new file
+// Access specific contracts
+const contractNames = Object.keys(compiledCode.contracts[fileName]);
+
+// Access "MyContr" contract
+const myContrName = "txMakerV2";
+if (!compiledCode.contracts[fileName][myContrName]) {
+    throw new Error(`Contract ${myContrName} not found in ${fileName}`);
+}
+const myContrBytecode = compiledCode.contracts[fileName][myContrName].evm.bytecode.object;
+const myContrAbi = compiledCode.contracts[fileName][myContrName].abi;
+
 const bytecodePath = path.join(__dirname, 'MyContractBytecode.bin');
-fs.writeFileSync(bytecodePath, bytecode);
+fs.writeFileSync(bytecodePath, myContrBytecode);
 
-// Log the compiled contract code to the console
-console.log('Contract Bytecode:\n', bytecode);
-
-// Get the ABI from the compiled contract
-const abi = compiledCode.contracts[fileName][contractName].abi;
-
-// Write the Contract ABI to a new file
 const abiPath = path.join(__dirname, 'MyContractAbi.json');
-fs.writeFileSync(abiPath, JSON.stringify(abi, null, '\t'));
+fs.writeFileSync(abiPath, JSON.stringify(myContrAbi, null, '\t'));
 
-// Log the Contract ABI to the console
-console.log('Contract ABI:\n', abi);
+// Output ABI and Bytecode
+console.log(`MyContr Bytecode:`, myContrBytecode);
+console.log(`MyContr ABI:`, myContrAbi);
